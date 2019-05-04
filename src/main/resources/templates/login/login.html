@@ -1,0 +1,118 @@
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>登录</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <script th:src="@{/js/jquery-3.2.1.min.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}"/>
+    <style>
+        html,body{
+            height:100%;
+        }
+        .login-block{
+            height: 25%;
+            overflow: auto;
+            margin: auto;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+        }
+
+    </style>
+</head>
+
+<body>
+<div class="col-md-12 login-block">
+    <input type="text" class="form-control" id="name" name="name" placeholder="请输入用户名">
+    <input type="password" class="form-control" id="password" name="password" placeholder="请输入密码">
+    <button type="button" id="btn" class="btn btn-success btn-lg btn-block">登录</button>
+</div>
+<img id="img" th:src="${code}">
+<input type="hidden" id="code" th:value="${uuid}"/>
+
+<script>
+    $(function(){
+            $("#btn").click(function(){
+                var name=$("#name").val();
+                var password=$("#password").val();
+
+                $.ajax({
+                    url:'login',
+                    data:{name:name,password:password},
+                    dataType:'json',
+                    type:'post',
+                    success:function (data) {
+                        console.log(data);
+                        if(data.msg=='成功'){
+                            window.location.href="index";
+                        }else {
+                            alert("用户不存在");
+                        }
+                    }
+                });
+
+
+            });
+           /**
+            $.ajax({
+                url:'/login/getQRCode',
+                dataType:'text',
+                type:'post',
+                success:function (data) {
+                    $("#img").attr("src",data);
+                }
+            });
+            */
+           var websocket = null;
+        //判断当前浏览器是否支持WebSocket
+        if ('WebSocket' in window) {
+            var code = $("#code").val();
+            websocket = new WebSocket("ws://" + window.location.host + "/websocket/ScanCode/" + code + "/0");
+
+            //连接发生错误的回调方法
+            websocket.onerror = function () {
+                console.log("WebSocket连接发生错误");
+            };
+
+            //连接成功建立的回调方法
+            websocket.onopen = function () {
+                console.log("WebSocket连接成功");
+            }
+
+            //接收到消息的回调方法
+            websocket.onmessage = function (event) {
+                console.log(event.data);
+                $.ajax({
+                    url:'login/token',
+                    data:{code:event.data},
+                    dataType:'json',
+                    type:'post',
+                    success:function (data) {
+                        console.log(data);
+                        if(data.msg=='成功'){
+                            window.location.href="index";
+                        }else {
+                            alert("用户不存在");
+                        }
+                    }
+                });
+            }
+
+            //连接关闭的回调方法
+            websocket.onclose = function () {
+                console.log("WebSocket连接关闭");
+            }
+
+            window.onbeforeunload = function () {
+                closeWebSocket();
+            }
+
+            //关闭WebSocket连接
+            function closeWebSocket() {
+                websocket.close();
+            }
+        }
+
+    });
+</script>
+</body>
+</html>
